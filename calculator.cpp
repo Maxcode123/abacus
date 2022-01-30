@@ -19,6 +19,7 @@ class Token_stream
 public:
     Token get();
     void putback(Token t);
+    void ignore(char c);
 private:
     bool full {false};
     Token buffer {0};
@@ -65,6 +66,19 @@ void Token_stream::putback(Token t)
     if (full) error("putback() into a full buffer");
     buffer = t;
     full = true;
+}
+
+void Token_stream::ignore(char c)
+{
+    if (full && c == buffer.kind) {
+        full = false;
+        return;
+    }
+    full = false;
+
+    char ch = 0;
+    while (cin >> ch)
+        if (ch == c) return;
 }
 
 Token_stream ts;
@@ -155,20 +169,36 @@ double expression()
     }
 }
 
+void clean_up_mess()
+{
+    ts.ignore(print);
+}
+
 const char prompt = '>';
 const char result = '=';
+
+void calculate()
+{
+    while (cin)
+    try {
+        cout << prompt << ' ';
+        Token t = ts.get();
+        while (t.kind == print) t = ts.get();
+        if (t.kind == quit) return;
+        ts.putback(t);
+        cout << result << ' ' << expression() << '\n';
+    }
+    catch (exception& e) {
+        cerr << e.what() << '\n';
+        clean_up_mess();
+    }
+}
 
 int main()
 try 
 {
-    while (cin) {
-        cout << prompt << ' ';
-        Token t = ts.get();
-        while (t.kind == print) t = ts.get();
-        if (t.kind == quit) return 0;
-        ts.putback(t);
-        cout << result << ' ' << expression() << '\n';        
-    }
+    calculate();
+    return 0;
 }
 catch (exception& e) {
     cerr << e.what() << '\n';
