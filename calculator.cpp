@@ -5,6 +5,38 @@
 
 double expression();
 
+class Variable
+{
+public:
+    string name;
+    double value;
+};
+
+class Variable_table
+{
+public:
+    double get_value(string s);
+    void set_value(string s, double d);
+private:
+    vector<Variable> var_table;
+};
+
+double Variable_table::get_value(string s)
+{
+    for (const Variable& v: var_table)
+        if (v.name == s) return v.value;
+    error("get: undefined variable", s);
+}
+
+void Variable_table::set_value(string s, double d)
+{
+    for (int i = 0; i < var_table.size(); i++)
+        if (var_table[i].name == s) {
+            var_table[i].value = d;
+            return;
+        }
+}
+
 class Token
 {
 public:
