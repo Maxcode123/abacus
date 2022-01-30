@@ -20,7 +20,10 @@ public:
     void set_value(string s, double d);
     void add_var(string s, double d);
     bool exists(string s);
+    void add_const(string s, double d);
+    bool is_constant(string s);
 private:
+    vector<string> const_table;
     vector<Variable> var_table;
 };
 
@@ -30,7 +33,7 @@ double Variable_table::get_value(string s)
 {
     for (const Variable& v: var_table)
         if (v.name == s) return v.value;
-    error("get: undefined variable", s);
+    error("get: undefined variable ", s);
 }
 
 void Variable_table::set_value(string s, double d)
@@ -52,6 +55,20 @@ bool Variable_table::exists(string s)
 {
     for (const Variable& v: var_table)
         if (v.name == s) return true;
+    return false;
+}
+
+void Variable_table::add_const(string s, double d)
+{
+    Variable con = Variable(s, d);
+    var_table.push_back(con);
+    const_table.push_back(s);
+}
+
+bool Variable_table::is_constant(string s)
+{
+    for (const string& v: const_table)
+        if (v == s) return true;
     return false;
 }
 
@@ -242,7 +259,9 @@ double expression()
 double declaration()
 {
     Token t = ts.get();
+    if (t.kind == quit) error("q is a reserved name and cannot be declared as a variable");
     if (t.kind != name) error("name expected in declaration");
+    if (vt.is_constant(t.name)) error(t.name, " is a reserved name and cannot be declared as a variable");
     string var_name = t.name;
 
     Token t2 = ts.get();
@@ -296,6 +315,9 @@ void calculate()
 int main()
 try 
 {
+    vt.add_const("pi", 3.1415926535);
+    vt.add_const("e", 2.7182818284);
+
     calculate();
     return 0;
 }
