@@ -10,31 +10,38 @@ class Variable
 public:
     string name;
     double value;
+    Variable(string s, double d) :name{s}, value{d} {}
 };
 
-class Variable_table
-{
-public:
-    double get_value(string s);
-    void set_value(string s, double d);
-private:
-    vector<Variable> var_table;
-};
+vector<Variable> var_table;
 
-double Variable_table::get_value(string s)
+double get_value(string s)
 {
     for (const Variable& v: var_table)
         if (v.name == s) return v.value;
     error("get: undefined variable", s);
 }
 
-void Variable_table::set_value(string s, double d)
+void set_value(string s, double d)
 {
-    for (int i = 0; i < var_table.size(); i++)
-        if (var_table[i].name == s) {
-            var_table[i].value = d;
+    for (Variable& v: var_table)
+        if (v.name == s) {
+            v.value = d;
             return;
         }
+}
+
+void add_var(string s, double d)
+{
+    Variable var = Variable(s, d);
+    var_table.push_back(var);
+}
+
+bool exists(string s)
+{
+    for (const Variable& v: var_table)
+        if (v.name == s) return true;
+    return false;
 }
 
 class Token
@@ -42,8 +49,11 @@ class Token
 public:
     char kind;
     double value;
+    string name;
+    Token() :kind{0} {}
     Token(char k) :kind{k}, value{0.0} {}
     Token(char k, double v) :kind{k}, value(v) {}
+    Token(char ch, string n) :kind{ch}, name{n} {}
 };
 
 class Token_stream
@@ -60,6 +70,10 @@ private:
 const char number = '8';
 const char quit = 'q';
 const char print = ';';
+const char name = 'a';
+const char let = 'L';
+const char assign = '=';
+const string declkey = "let";
 
 Token Token_stream::get()
 {
@@ -73,6 +87,7 @@ Token Token_stream::get()
     switch (ch) {
         case print:
         case quit:
+        case assign:
         case '(':
         case ')':
         case '+':
@@ -89,6 +104,14 @@ Token Token_stream::get()
             return Token(number, val);
         }
         default:
+            if (isalpha(ch)) {
+                string s;
+                s += ch;
+                while (cin.get(ch) && (isalpha(ch) || isdigit(ch))) s += ch;
+                cin.putback(ch);
+                if (s == declkey) return Token{let};
+                return Token{name, s};
+            }
             error("Bad token\n");
     }
 }
@@ -137,6 +160,10 @@ double primary()
         case '+':
         {
             return primary();
+        }
+        case name:
+        {
+            return get_value(t.name);
         }
         default:
             error("primary expected");
@@ -201,6 +228,35 @@ double expression()
     }
 }
 
+double declaration()
+{
+    Token t = ts.get();
+    if (t.kind != name) error("name expected in declaration");
+    string var_name = t.name;
+
+    Token t2 = ts.get();
+    if (t2.kind != '=') error("= missing in declaration of ", var_name);
+
+    double d = expression();
+    if (exists(var_name))
+        set_value(var_name, d);
+    else
+        add_var(var_name, d);
+    return d;
+}
+
+double statement()
+{
+    Token t = ts.get();
+    switch (t.kind) {
+        case let:
+            return declaration();
+        default:
+            ts.putback(t);
+            return expression();
+    }
+}
+
 void clean_up_mess()
 {
     ts.ignore(print);
@@ -218,7 +274,7 @@ void calculate()
         while (t.kind == print) t = ts.get();
         if (t.kind == quit) return;
         ts.putback(t);
-        cout << result << ' ' << expression() << '\n';
+        cout << result << ' ' << statement() << '\n';
     }
     catch (exception& e) {
         cerr << e.what() << '\n';
