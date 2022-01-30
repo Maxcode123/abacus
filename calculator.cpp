@@ -13,16 +13,27 @@ public:
     Variable(string s, double d) :name{s}, value{d} {}
 };
 
-vector<Variable> var_table;
+class Variable_table
+{
+public:
+    double get_value(string s);
+    void set_value(string s, double d);
+    void add_var(string s, double d);
+    bool exists(string s);
+private:
+    vector<Variable> var_table;
+};
 
-double get_value(string s)
+Variable_table vt;
+
+double Variable_table::get_value(string s)
 {
     for (const Variable& v: var_table)
         if (v.name == s) return v.value;
     error("get: undefined variable", s);
 }
 
-void set_value(string s, double d)
+void Variable_table::set_value(string s, double d)
 {
     for (Variable& v: var_table)
         if (v.name == s) {
@@ -31,13 +42,13 @@ void set_value(string s, double d)
         }
 }
 
-void add_var(string s, double d)
+void Variable_table::add_var(string s, double d)
 {
     Variable var = Variable(s, d);
     var_table.push_back(var);
 }
 
-bool exists(string s)
+bool Variable_table::exists(string s)
 {
     for (const Variable& v: var_table)
         if (v.name == s) return true;
@@ -163,7 +174,7 @@ double primary()
         }
         case name:
         {
-            return get_value(t.name);
+            return vt.get_value(t.name);
         }
         default:
             error("primary expected");
@@ -238,10 +249,10 @@ double declaration()
     if (t2.kind != '=') error("= missing in declaration of ", var_name);
 
     double d = expression();
-    if (exists(var_name))
-        set_value(var_name, d);
+    if (vt.exists(var_name))
+        vt.set_value(var_name, d);
     else
-        add_var(var_name, d);
+        vt.add_var(var_name, d);
     return d;
 }
 
